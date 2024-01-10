@@ -35,9 +35,9 @@ def post_detail(request, pk):
                 'category'
             ).filter(
                 Q(author=request.user) | (
-                    Q(pub_date__lte=timezone.now()) & 
-                    Q(is_published=True) &
-                    Q(category__is_published=True)
+                    Q(pub_date__lte=timezone.now())
+                    & Q(is_published=True)
+                    & Q(category__is_published=True)
                 )
             ),
             pk=pk
