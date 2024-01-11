@@ -2,9 +2,6 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.db.models import Count
-from django.utils import timezone
-
 
 from .models import Post, Category
 from .forms import PostForm, CommentForm, ProfileForm
@@ -14,7 +11,7 @@ User = get_user_model()
 
 
 def index(request):
-    posts = Post.post_set.with_relations().puplished() \
+    posts = Post.post_set.with_relations().published() \
                 .with_comments().ordered()
     page_obj = Post.get_page_obj(request, posts)
     context = {
@@ -26,14 +23,14 @@ def index(request):
 def post_detail(request, pk):
     if not request.user.is_authenticated:
         post = get_object_or_404(
-            Post.post_set.with_relations().puplished(),
+            Post.post_set.with_relations().published(),
             pk=pk
         )
     else:
         post = get_object_or_404(
             Post.post_set.with_relations().from_author(
                 request.user
-            ) | Post.post_set.with_relations().puplished(),
+            ) | Post.post_set.with_relations().published(),
             pk=pk
         )
     context = {'post': post}
@@ -49,16 +46,9 @@ def category_posts(request, category_slug):
         ),
         slug=category_slug
     )
-    posts = category.posts.select_related(
-        'author',
-        'location',
-        'category'
-    ).filter(
-        pub_date__lte=timezone.now(),
-        is_published=True
-    ).annotate(
-        comment_count=Count('comments')
-    ).order_by('-pub_date')
+    posts = Post.post_set.filter(category=category) \
+                .with_relations().published() \
+                .with_comments().ordered()
     page_obj = Post.get_page_obj(request, posts)
     context = {
         'category': category,

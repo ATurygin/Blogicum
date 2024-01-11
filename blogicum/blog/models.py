@@ -49,7 +49,7 @@ class Location(PublishedModel):
 
 class PostQuerySet(models.QuerySet):
 
-    def puplished(self):
+    def published(self):
         return self.filter(
             pub_date__lte=timezone.now(),
             is_published=True,
