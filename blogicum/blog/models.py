@@ -47,6 +47,34 @@ class Location(PublishedModel):
         return self.name
 
 
+class PostQuerySet(models.QuerySet):
+
+    def puplished(self):
+        return self.filter(
+            pub_date__lte=timezone.now(),
+            is_published=True,
+            category__is_published=True
+        )
+
+    def with_relations(self):
+        return self.select_related(
+            'author',
+            'location',
+            'category'
+        )
+
+    def ordered(self):
+        return self.order_by('-pub_date')
+
+    def with_comments(self):
+        return self.annotate(
+            comment_count=models.Count('comments')
+        )
+
+    def from_author(self, user):
+        return self.filter(author=user)
+
+
 class Post(PublishedModel):
     title = models.CharField(
         max_length=256,
@@ -87,18 +115,12 @@ class Post(PublishedModel):
         related_name='posts',
         verbose_name='Категория'
     )
+    objects = models.Manager()
+    post_set = PostQuerySet.as_manager()
 
     @classmethod
     def get_posts(cls):
-        return cls.objects.select_related(
-            'author',
-            'location',
-            'category'
-        ).filter(
-            pub_date__lte=timezone.now(),
-            is_published=True,
-            category__is_published=True
-        )
+        return cls.posts.with_relations().puplished()
 
     @staticmethod
     def get_page_obj(request, queryset):

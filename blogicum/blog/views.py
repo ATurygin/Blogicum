@@ -1,9 +1,9 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from django.utils import timezone
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count, Q
 from django.core.exceptions import PermissionDenied
+from django.db.models import Count
+from django.utils import timezone
 
 
 from .models import Post, Category
@@ -14,9 +14,8 @@ User = get_user_model()
 
 
 def index(request):
-    posts = Post.get_posts().annotate(
-        comment_count=Count('comments')
-    ).order_by('-pub_date')
+    posts = Post.post_set.with_relations().puplished() \
+                .with_comments().ordered()
     page_obj = Post.get_page_obj(request, posts)
     context = {
         'page_obj': page_obj
@@ -26,20 +25,15 @@ def index(request):
 
 def post_detail(request, pk):
     if not request.user.is_authenticated:
-        post = get_object_or_404(Post.get_posts(), pk=pk)
+        post = get_object_or_404(
+            Post.post_set.with_relations().puplished(),
+            pk=pk
+        )
     else:
         post = get_object_or_404(
-            Post.objects.select_related(
-                'author',
-                'location',
-                'category'
-            ).filter(
-                Q(author=request.user) | (
-                    Q(pub_date__lte=timezone.now())
-                    & Q(is_published=True)
-                    & Q(category__is_published=True)
-                )
-            ),
+            Post.post_set.with_relations().from_author(
+                request.user
+            ) | Post.post_set.with_relations().puplished(),
             pk=pk
         )
     context = {'post': post}
@@ -60,8 +54,8 @@ def category_posts(request, category_slug):
         'location',
         'category'
     ).filter(
-        is_published=True,
-        pub_date__lte=timezone.now()
+        pub_date__lte=timezone.now(),
+        is_published=True
     ).annotate(
         comment_count=Count('comments')
     ).order_by('-pub_date')
@@ -75,13 +69,8 @@ def category_posts(request, category_slug):
 
 def profile(request, username):
     user = get_object_or_404(User, username=username)
-    posts = Post.objects.select_related(
-        'author',
-        'location',
-        'category'
-    ).filter(author=user).annotate(
-        comment_count=Count('comments')
-    ).order_by('-pub_date')
+    posts = Post.post_set.with_relations().from_author(user) \
+                .with_comments().ordered()
     page_obj = Post.get_page_obj(request, posts)
     context = {
         'profile': user,
