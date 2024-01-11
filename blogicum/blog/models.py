@@ -118,10 +118,6 @@ class Post(PublishedModel):
     objects = models.Manager()
     post_set = PostQuerySet.as_manager()
 
-    @classmethod
-    def get_posts(cls):
-        return cls.posts.with_relations().puplished()
-
     @staticmethod
     def get_page_obj(request, queryset):
         paginator = Paginator(queryset, 10)
