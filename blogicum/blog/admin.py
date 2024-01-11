@@ -3,6 +3,12 @@ from django.contrib import admin
 from blog.models import Category
 from blog.models import Location
 from blog.models import Post
+from blog.models import Comment
+
+
+class CommentsInLine(admin.StackedInline):
+    model = Comment
+    extra = 0
 
 
 class PostAdmin(admin.ModelAdmin):
@@ -19,6 +25,7 @@ class PostAdmin(admin.ModelAdmin):
         'pub_date',
         'is_published'
     )
+    inlines = (CommentsInLine,)
     search_fields = ('title',)
     list_filter = ('category',)
     list_display_links = ('title',)
@@ -41,6 +48,15 @@ class CategoryAdmin(admin.ModelAdmin):
     inlines = (PostsInLine,)
 
 
+class CommentAdmin(admin.ModelAdmin):
+    list_display = (
+        'author',
+        'text',
+        'created_at',
+    )
+
+
 admin.site.register(Category, CategoryAdmin)
 admin.site.register(Location)
 admin.site.register(Post, PostAdmin)
+admin.site.register(Comment, CommentAdmin)
