@@ -153,33 +153,18 @@ def edit_comment(request, post_pk, comment_pk):
     )
     if comment.author != request.user:
         raise PermissionDenied
-    form = CommentForm(request.POST or None,
-                       instance=comment)
-    if form.is_valid():
-        form.save()
-        return redirect('blog:post_detail', pk=post_pk)
-    context = {
-        'form': form,
-        'comment': comment
-    }
-    return render(request, 'blog/comment.html', context)
-
-
-@login_required
-def delete_comment(request, post_pk, comment_pk):
-    post = get_object_or_404(Post, pk=post_pk)
-    comment = get_object_or_404(
-        post.comments.all(),
-        pk=comment_pk
-    )
-    if comment.author != request.user:
-        raise PermissionDenied
-    context = {
-        'comment': comment
-    }
-    if request.method == 'POST':
+    context = {'comment': comment}
+    if (r'/delete_comment/' in request.path
+            and request.method == 'POST'):
         comment.delete()
         return redirect('blog:post_detail', pk=post_pk)
+    if r'/edit_comment/' in request.path:
+        form = CommentForm(request.POST or None,
+                           instance=comment)
+        context['form'] = form
+        if form.is_valid():
+            form.save()
+            return redirect('blog:post_detail', pk=post_pk)
     return render(request, 'blog/comment.html', context)
 
 
