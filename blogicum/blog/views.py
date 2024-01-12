@@ -5,6 +5,7 @@ from django.core.exceptions import PermissionDenied
 
 from .models import Post, Category
 from .forms import PostForm, CommentForm, ProfileForm
+from .utils import get_comment_for_update
 
 
 User = get_user_model()
@@ -114,7 +115,7 @@ def delete_post(request, pk):
 @login_required
 def add_comment(request, pk):
     post = get_object_or_404(Post, pk=pk)
-    form = CommentForm(request.POST)
+    form = CommentForm(request.POST or None)
     if form.is_valid():
         comment = form.save(commit=False)
         comment.author = request.user
@@ -125,25 +126,24 @@ def add_comment(request, pk):
 
 @login_required
 def edit_comment(request, post_pk, comment_pk):
-    post = get_object_or_404(Post, pk=post_pk)
-    comment = get_object_or_404(
-        post.comments.all(),
-        pk=comment_pk
-    )
-    if comment.author != request.user:
-        raise PermissionDenied
+    comment = get_comment_for_update(request, post_pk, comment_pk)
     context = {'comment': comment}
-    if (r'/delete_comment/' in request.path
-            and request.method == 'POST'):
+    form = CommentForm(request.POST or None,
+                       instance=comment)
+    context['form'] = form
+    if form.is_valid():
+        form.save()
+        return redirect('blog:post_detail', pk=post_pk)
+    return render(request, 'blog/comment.html', context)
+
+
+@login_required
+def delete_comment(request, post_pk, comment_pk):
+    comment = get_comment_for_update(request, post_pk, comment_pk)
+    context = {'comment': comment}
+    if request.method == 'POST':
         comment.delete()
         return redirect('blog:post_detail', pk=post_pk)
-    if r'/edit_comment/' in request.path:
-        form = CommentForm(request.POST or None,
-                           instance=comment)
-        context['form'] = form
-        if form.is_valid():
-            form.save()
-            return redirect('blog:post_detail', pk=post_pk)
     return render(request, 'blog/comment.html', context)
 
 

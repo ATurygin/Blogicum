@@ -15,7 +15,7 @@ urlpatterns = [
     path('posts/<int:post_pk>/edit_comment/<int:comment_pk>/',
          views.edit_comment, name='edit_comment'),
     path('posts/<int:post_pk>/delete_comment/<comment_pk>/',
-         views.edit_comment, name='delete_comment'),
+         views.delete_comment, name='delete_comment'),
     path('category/<slug:category_slug>/', views.category_posts,
          name='category_posts'),
     path('edit_profile/', views.edit_profile,
